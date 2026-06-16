@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1D9E75" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Expenses" />
+  <meta name="description" content="Track your daily expenses easily" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Daily Expenses</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #1D9E75;
+      --green-dark: #0F6E56;
+      --green-light: #E1F5EE;
+      --red: #E24B4A;
+      --red-light: #FCEBEB;
+      --blue: #378ADD;
+      --blue-light: #E6F1FB;
+      --amber: #BA7517;
+      --amber-light: #FAEEDA;
+      --purple: #7F77DD;
+      --purple-light: #EEEDFE;
+      --pink: #D4537E;
+      --pink-light: #FBEAF0;
+      --gray: #888780;
+      --gray-light: #F1EFE8;
+      --bg: #F7F7F5;
+      --surface: #FFFFFF;
+      --text: #1a1a1a;
+      --text-2: #555;
+      --text-3: #999;
+      --border: rgba(0,0,0,0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f0f0f;
+        --surface: #1c1c1e;
+        --text: #f0f0f0;
+        --text-2: #aaa;
+        --text-3: #666;
+        --border: rgba(255,255,255,0.1);
+        --green-light: #04342C;
+        --red-light: #501313;
+        --blue-light: #042C53;
+        --amber-light: #412402;
+        --purple-light: #26215C;
+        --pink-light: #4B1528;
+        --gray-light: #2C2C2A;
+        --shadow: 0 1px 4px rgba(0,0,0,0.4);
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: 80px;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: var(--green);
+      color: #fff;
+      padding: 52px 16px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-row { display: flex; align-items: center; justify-content: space-between; }
+    .topbar h1 { font-size: 20px; font-weight: 600; }
+    .topbar .today { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+    .topbar-icon { background: rgba(255,255,255,0.2); border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; }
+
+    /* Summary cards */
+    .summary { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 16px 16px 0; }
+    .stat-card { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 14px; box-shadow: var(--shadow); }
+    .stat-label { font-size: 11px; color: var(--text-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 17px; font-weight: 600; color: var(--text); }
+    .stat-value.danger { color: var(--red); }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; margin: 16px 16px 0; background: var(--surface); border-radius: var(--radius-sm); padding: 3px; box-shadow: var(--shadow); }
+    .tab { flex: 1; padding: 8px; font-size: 13px; font-weight: 500; border: none; background: transparent; color: var(--text-2); border-radius: 7px; cursor: pointer; transition: all 0.15s; }
+    .tab.active { background: var(--green); color: #fff; }
+
+    /* Content area */
+    .content { padding: 12px 16px; }
+
+    /* Add form */
+    .add-form { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 16px; }
+    .add-form h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 5px; }
+    .field input, .field select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); background: var(--bg); color: var(--text);
+      font-size: 15px; -webkit-appearance: none; appearance: none;
+    }
+    .field input:focus, .field select:focus { outline: 2px solid var(--green); border-color: transparent; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-submit {
+      width: 100%; padding: 13px; background: var(--green); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-size: 16px;
+      font-weight: 600; cursor: pointer; margin-top: 4px;
+    }
+    .btn-submit:active { background: var(--green-dark); transform: scale(0.98); }
+
+    /* Expense list */
+    .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .list-header span { font-size: 13px; color: var(--text-2); }
+    .filter-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; scrollbar-width: none; }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text-2);
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    }
+    .filter-chip.active { background: var(--green); color: #fff; border-color: var(--green); }
+
+    .expense-item {
+      background: var(--surface); border-radius: var(--radius-sm); padding: 13px 14px;
+      display: flex; align-items: center; gap: 12px; margin-bottom: 8px; box-shadow: var(--shadow);
+    }
+    .cat-icon {
+      width: 38px; height: 38px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+    .item-body { flex: 1; min-width: 0; }
+    .item-name { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .item-right { text-align: right; flex-shrink: 0; }
+    .item-amt { font-size: 16px; font-weight: 600; color: var(--text); }
+    .btn-del { background: none; border: none; color: var(--text-3); font-size: 20px; cursor: pointer; padding: 4px; line-height: 1; }
+    .btn-del:active { color: var(--red); }
+
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--text-3); }
+    .empty .emoji { font-size: 40px; margin-bottom: 12px; }
+    .empty p { font-size: 14px; }
+
+    /* Chart */
+    .chart-card { background: var(--surface); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+    .chart-card h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 14px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .bar-label { font-size: 12px; color: var(--text-2); width: 80px; flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+    .bar-emoji { font-size: 14px; }
+    .bar-track { flex: 1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .bar-val { font-size: 12px; color: var(--text-2); width: 58px; text-align: right; flex-shrink: 0; }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border);
+      display: flex; padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+      z-index: 20;
+    }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; border: none; background: none; color: var(--text-3); font-size: 10px; padding: 6px 0; }
+    .nav-item.active { color: var(--green); }
+    .nav-item svg { width: 22px; height: 22px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #222; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px;
+      opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (prefers-color-scheme: dark) {
+      .field input, .field select { background: #111; }
+      .filter-chip:not(.active) { background: #111; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-row">
+    <div>
+      <h1>💰 My Expenses</h1>
+      <div class="today" id="today-label"></div>
+    </div>
+  </div>
+</div>
+
+<div class="summary">
+  <div class="stat-card">
+    <div class="stat-label">Today</div>
+    <div class="stat-value danger" id="sum-today">₹0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">This month</div>
+    <div class="stat-value" id="sum-month">₹0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Entries</div>
+    <div class="stat-value" id="sum-count">0</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('add',this)">➕ Add</button>
+  <button class="tab" onclick="showTab('list',this)">📋 List</button>
+  <button class="tab" onclick="showTab('chart',this)">📊 Chart</button>
+</div>
+
+<div class="content">
+
+  <!-- Add tab -->
+  <div id="tab-add">
+    <div class="add-form">
+      <h2>New expense</h2>
+      <div class="field">
+        <label>Description *</label>
+        <input type="text" id="inp-desc" placeholder="e.g. Lunch at office" />
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Amount (₹) *</label>
+          <input type="number" id="inp-amt" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field">
+          <label>Date *</label>
+          <input type="date" id="inp-date" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Category</label>
+          <select id="inp-cat">
+            <option value="Food">🍔 Food</option>
+            <option value="Transport">🚗 Transport</option>
+            <option value="Shopping">🛍️ Shopping</option>
+            <option value="Health">💊 Health</option>
+            <option value="Entertainment">🎬 Entertainment</option>
+            <option value="Bills">📄 Bills</option>
+            <option value="Other">📦 Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Note</label>
+          <input type="text" id="inp-note" placeholder="Optional…" />
+        </div>
+      </div>
+      <button class="btn-submit" onclick="addExpense()">Add Expense</button>
+    </div>
+  </div>
+
+  <!-- List tab -->
+  <div id="tab-list" style="display:none">
+    <div class="filter-bar" id="filter-bar">
+      <button class="filter-chip active" onclick="setFilter('All',this)">All</button>
+      <button class="filter-chip" onclick="setFilter('Food',this)">🍔 Food</button>
+      <button class="filter-chip" onclick="setFilter('Transport',this)">🚗 Transport</button>
+      <button class="filter-chip" onclick="setFilter('Shopping',this)">🛍️ Shopping</button>
+      <button class="filter-chip" onclick="setFilter('Health',this)">💊 Health</button>
+      <button class="filter-chip" onclick="setFilter('Entertainment',this)">🎬 Entertainment</button>
+      <button class="filter-chip" onclick="setFilter('Bills',this)">📄 Bills</button>
+      <button class="filter-chip" onclick="setFilter('Other',this)">📦 Other</button>
+    </div>
+    <div id="expense-list"></div>
+  </div>
+
+  <!-- Chart tab -->
+  <div id="tab-chart" style="display:none">
+    <div class="chart-card">
+      <h3>Spending by category</h3>
+      <div id="cat-chart"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Last 7 days</h3>
+      <div id="week-chart"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CAT = {
+  Food:          { emoji: '🍔', color: '#1D9E75' },
+  Transport:     { emoji: '🚗', color: '#378ADD' },
+  Shopping:      { emoji: '🛍️', color: '#D4537E' },
+  Health:        { emoji: '💊', color: '#E24B4A' },
+  Entertainment: { emoji: '🎬', color: '#7F77DD' },
+  Bills:         { emoji: '📄', color: '#BA7517' },
+  Other:         { emoji: '📦', color: '#888780' }
+};
+
+const KEY = 'xpense_pwa_v1';
+let expenses = [];
+let activeFilter = 'All';
+let activeTab = 'add';
+
+function load() {
+  try { expenses = JSON.parse(localStorage.getItem(KEY)) || []; } catch(e) { expenses = []; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(expenses)); } catch(e) {}
+}
+
+function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function showTab(tab, el) {
+  ['add','list','chart'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === tab ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  activeTab = tab;
+  if (tab === 'list') renderList();
+  if (tab === 'chart') renderChart();
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function addExpense() {
+  const desc = document.getElementById('inp-desc').value.trim();
+  const amt = parseFloat(document.getElementById('inp-amt').value);
+  const date = document.getElementById('inp-date').value;
+  const cat = document.getElementById('inp-cat').value;
+  const note = document.getElementById('inp-note').value.trim();
+
+  if (!desc) { toast('Please enter a description'); return; }
+  if (!amt || amt <= 0) { toast('Please enter a valid amount'); return; }
+  if (!date) { toast('Please select a date'); return; }
+
+  expenses.unshift({ id: Date.now(), desc, amt, date, cat, note });
+  save();
+  updateSummary();
+
+  document.getElementById('inp-desc').value = '';
+  document.getElementById('inp-amt').value = '';
+  document.getElementById('inp-note').value = '';
+  toast('✅ Expense added!');
+}
+
+function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  expenses = expenses.filter(e => e.id !== id);
+  save();
+  updateSummary();
+  renderList();
+}
+
+function updateSummary() {
+  const t = todayStr();
+  const m = t.slice(0,7);
+  document.getElementById('sum-today').textContent = fmt(expenses.filter(e=>e.date===t).reduce((s,e)=>s+e.amt,0));
+  document.getElementById('sum-month').textContent = fmt(expenses.filter(e=>e.date.startsWith(m)).reduce((s,e)=>s+e.amt,0));
+  document.getElementById('sum-count').textContent = expenses.length;
+}
+
+function renderList() {
+  const filtered = activeFilter === 'All' ? expenses : expenses.filter(e => e.cat === activeFilter);
+  const el = document.getElementById('expense-list');
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="emoji">🧾</div><p>No expenses found</p></div>';
+    return;
+  }
+  el.innerHTML = filtered.map(e => {
+    const c = CAT[e.cat] || CAT.Other;
+    return `<div class="expense-item">
+      <div class="cat-icon" style="background:${c.color}22">${c.emoji}</div>
+      <div class="item-body">
+        <div class="item-name">${e.desc}</div>
+        <div class="item-sub">${e.cat} · ${e.date}${e.note ? ' · '+e.note : ''}</div>
+      </div>
+      <div class="item-right">
+        <div class="item-amt">${fmt(e.amt)}</div>
+        <button class="btn-del" onclick="deleteExpense(${e.id})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderChart() {
+  const totals = {};
+  expenses.forEach(e => { totals[e.cat] = (totals[e.cat]||0) + e.amt; });
+  const entries = Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  const max = entries[0]?.[1] || 1;
+  const catEl = document.getElementById('cat-chart');
+  if (!entries.length) { catEl.innerHTML = '<div class="empty"><p>No data yet</p></div>'; }
+  else catEl.innerHTML = entries.map(([cat,total]) => {
+    const c = CAT[cat]||CAT.Other;
+    return `<div class="bar-row">
+      <div class="bar-label"><span class="bar-emoji">${c.emoji}</span>${cat}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(total/max*100)}%;background:${c.color}"></div></div>
+      <div class="bar-val">${fmt(total)}</div>
+    </div>`;
+  }).join('');
+
+  // Last 7 days
+  const days = [];
+  for (let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  const dayTotals = days.map(d => ({ d, amt: expenses.filter(e=>e.date===d).reduce((s,e)=>s+e.amt,0) }));
+  const maxDay = Math.max(...dayTotals.map(d=>d.amt)) || 1;
+  const wEl = document.getElementById('week-chart');
+  wEl.innerHTML = dayTotals.map(({d,amt}) => {
+    const label = new Date(d+'T12:00:00').toLocaleDateString('en-IN',{weekday:'short',day:'numeric'});
+    return `<div class="bar-row">
+      <div class="bar-label" style="font-size:11px">${label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(amt/maxDay*100)}%;background:#1D9E75"></div></div>
+      <div class="bar-val">${fmt(amt)}</div>
+    </div>`;
+  }).join('');
+}
+
+// Init
+load();
+document.getElementById('today-label').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+document.getElementById('inp-date').value = todayStr();
+updateSummary();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
